@@ -5,7 +5,7 @@ function App() {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Vercel-ийн орчны хувьсагчаас эсвэл шууд API Key авна
+  // Vercel эсвэл .env дээрх API түлхүүр
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   const handleSubmit = async (e) => {
@@ -16,8 +16,10 @@ function App() {
     setResponse('');
 
     try {
+      // Албан ёсны стандарт gemini-1.5-flash загвар
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -54,7 +56,7 @@ function App() {
       <form onSubmit={handleSubmit}>
         <textarea
           rows="4"
-          style={{ width: '100%', padding: '10px', fontSize: '16px' }}
+          style={{ width: '100%', padding: '10px', fontSize: '16px', borderRadius: '6px', border: '1px solid #ccc' }}
           placeholder="Хариултаа энд бичээрэй..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -62,7 +64,15 @@ function App() {
         <button 
           type="submit" 
           disabled={loading}
-          style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}
+          style={{ 
+            padding: '10px 20px', 
+            backgroundColor: loading ? '#9ca3af' : '#2563eb', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '4px', 
+            cursor: loading ? 'not-allowed' : 'pointer', 
+            marginTop: '10px' 
+          }}
         >
           {loading ? 'Илгээж байна...' : 'Илгээх'}
         </button>
@@ -71,7 +81,7 @@ function App() {
       {response && (
         <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
           <strong>ЦЭНДАО өвөө:</strong>
-          <p style={{ whitespace: 'pre-wrap' }}>{response}</p>
+          <p style={{ whitespace: 'pre-wrap', marginTop: '8px' }}>{response}</p>
         </div>
       )}
     </div>
