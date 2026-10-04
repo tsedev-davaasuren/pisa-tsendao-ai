@@ -16,8 +16,9 @@ function App() {
     setResponse('');
 
     try {
+      // Google-ийн шаардаж буй gemini-3.8-flash загвар
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: {
