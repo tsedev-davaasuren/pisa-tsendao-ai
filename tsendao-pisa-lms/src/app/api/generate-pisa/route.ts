@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 30;
 
@@ -15,30 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY тохируулагдаагүй байна.' }, { status: 500 });
     }
 
-    // 1. Google API-аас идэвхтэй загваруудыг авах
-    const listRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-    );
-    const listData = await listRes.json();
-
-    if (!listRes.ok) {
-      return NextResponse.json(
-        { error: `Google API Алдаа (${listRes.status}): ${listData.error?.message || JSON.stringify(listData)}` },
-        { status: 500 }
-      );
-    }
-
-    // generateContent дэмждэг бүх загваруудыг шүүж авах
-    const availableModels = (listData.models || [])
-      .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
-      .map((m: any) => m.name);
-
-    if (availableModels.length === 0) {
-      return NextResponse.json(
-        { error: 'Таны API түлхүүрт ажиллах боломжтой Gemini загвар олдсонгүй.' },
-        { status: 500 }
-      );
-    }
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     const prompt = `
 Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
@@ -70,42 +48,27 @@ ${readingText}
 }
 `;
 
+    // Timeout-аас сэргийлж зөвхөн хамгийн хурдан, идэвхтэй 2 загварыг тодорхой туршина
+    const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
     let responseText = '';
     let lastError = '';
 
-    // 2. Олдсон загваруудыг ажиллах хүртэл нь дараалуулан турших
-    for (const modelName of availableModels) {
+    for (const modelName of candidateModels) {
       try {
-        const genRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json' },
-            }),
-          }
-        );
-
-        const genData = await genRes.json();
-
-        if (genRes.ok && genData.candidates?.[0]?.content?.parts?.[0]?.text) {
-          responseText = genData.candidates[0].content.parts[0].text;
-          break; // Амжилттай үүссэн бол давталтыг зогсооно
-        } else {
-          lastError = genData.error?.message || `Status: ${genRes.status}`;
-        }
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { responseMimeType: 'application/json' },
+        });
+        const result = await model.generateContent(prompt);
+        responseText = result.response.text();
+        if (responseText) break;
       } catch (err: any) {
         lastError = err.message;
       }
     }
 
     if (!responseText) {
-      return NextResponse.json(
-        { error: `Gemini API Алдаа: ${lastError}` },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: `Gemini SDK Алдаа: ${lastError}` }, { status: 500 });
     }
 
     return NextResponse.json(JSON.parse(responseText));
