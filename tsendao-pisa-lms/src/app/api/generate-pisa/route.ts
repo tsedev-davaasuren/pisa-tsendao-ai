@@ -11,17 +11,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Эх бичвэр оруулна уу.' }, { status: 400 });
     }
 
-    // Түлхүүр болон хоосон зайг цэвэрлэх
     const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       return NextResponse.json({ error: 'GEMINI_API_KEY Vercel дээр тохируулагдаагүй байна.' }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: { responseMimeType: 'application/json' },
-    });
 
     const prompt = `
 Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эхэд үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
@@ -53,17 +48,36 @@ ${readingText}
 }
 `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    // Шинэ API түлхүүр дээр ажиллах Gemini 2.0 Flash загвар болон бусад хувилбаруудыг дараалуулан турших
+    const candidateModels = [
+      'gemini-2.0-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash-latest'
+    ];
+
+    let responseText = '';
+    let lastError = '';
+
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { responseMimeType: 'application/json' },
+        });
+        const result = await model.generateContent(prompt);
+        responseText = result.response.text();
+        if (responseText) break;
+      } catch (err: any) {
+        lastError = err.message;
+      }
+    }
+
+    if (!responseText) {
+      return NextResponse.json({ error: `Gemini SDK Алдаа: ${lastError}` }, { status: 500 });
+    }
 
     return NextResponse.json(JSON.parse(responseText));
   } catch (error: any) {
-    const rawKey = process.env.GEMINI_API_KEY?.trim() || '';
-    const keyShow = rawKey ? `${rawKey.substring(0, 10)}...${rawKey.slice(-4)}` : 'Хоосон/Байхгүй';
-
-    return NextResponse.json(
-      { error: `[Vercel дээрх идэвхтэй Key: ${keyShow}] Алдаа: ${error.message}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Алдаа гарлаа.' }, { status: 500 });
   }
 }
