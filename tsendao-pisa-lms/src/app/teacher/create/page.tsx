@@ -28,9 +28,9 @@ export default function TeacherCreatePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [generatedData, setGeneratedData] = useState<PisaData | null>(null);
-  const [savedAssignmentId, setSavedAssignmentId] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
 
-  // AI-аас даалгавар үүсгэх
+  // 1. AI-аар даалгавар үүсгэх функц
   const handleGenerate = async () => {
     if (!readingText.trim()) {
       alert('Эх бичвэрийг заавал оруулна уу!');
@@ -39,7 +39,7 @@ export default function TeacherCreatePage() {
 
     setLoading(true);
     setError(null);
-    setSavedAssignmentId(null);
+    setIsSaved(false);
 
     try {
       const res = await fetch('/api/generate-pisa', {
@@ -62,36 +62,34 @@ export default function TeacherCreatePage() {
     }
   };
 
-  // Зассан даалгавраа хадгалах
+  // 2. 💾 Даалгавар хадгалах функц (/task хуудастай шууд холбох хэсэг)
   const handleSave = async () => {
     if (!generatedData) return;
 
     setSaving(true);
-    const id = `pisa-${Date.now()}`;
 
-    const assignmentObj = {
-      id,
-      title: title || 'PISA Сорил',
-      readingText,
+    const taskToSave = {
+      title: title || 'Арван долоотой байхад',
+      readingText: readingText,
       mcq: generatedData.mcq,
       openQuestions: generatedData.openQuestions,
     };
 
-    // Сурагчийн цонхонд шууд харагдах хадгалалт
-    localStorage.setItem(`pisa_assignment_${id}`, JSON.stringify(assignmentObj));
+    // 🎯 ЭНЭ МӨР НЬ /task ХУУДАС РУУ БОДИТ ӨГӨГДЛИЙГ ШУУД ХУУЛНА:
+    localStorage.setItem('pisa_current_task', JSON.stringify(taskToSave));
 
     try {
       await fetch('/api/assignments/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assignmentObj),
+        body: JSON.stringify(taskToSave),
       });
     } catch (e) {
-      console.log('Saved to LocalStorage');
+      console.log('Saved locally');
     } finally {
-      setSavedAssignmentId(id);
+      setIsSaved(true);
       setSaving(false);
-      alert('Даалгавар амжилттай хадгалагдлаа!');
+      alert('Даалгавар амжилттай хадгалагдлаа! Одоо "🚀 Сорил ажиллах" товчийг даран сорилоо нээгээрэй.');
     }
   };
 
@@ -110,7 +108,7 @@ export default function TeacherCreatePage() {
             </p>
           </div>
           <Link
-            href="/teacher"
+            href="/"
             className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold rounded-xl transition"
           >
             ← Буцах
@@ -159,9 +157,7 @@ export default function TeacherCreatePage() {
           )}
         </div>
 
-        {/* ========================================================= */}
-        {/* 🎯 ЗЭРЭГЦЭЭ LAYOUT (ЗҮҮН 5:3 - 60% | БАРУУН 5:2 - 40%) */}
-        {/* ========================================================= */}
+        {/* ЗЭРЭГЦЭЭ LAYOUT (ЗҮҮН 5:3 | БАРУУН 5:2) */}
         {generatedData && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
             
@@ -178,14 +174,14 @@ export default function TeacherCreatePage() {
               </div>
             </div>
 
-            {/* БАРУУН ТАЛ: Боловсруулсан Асуултууд ба Засах Хэсэг (5-аас 2 багана) */}
+            {/* БАРУУН ТАЛ: Асуултууд ба Засах Хэсэг (5-аас 2 багана) */}
             <div className="lg:col-span-2 space-y-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
               
-              {/* Хадгалах болон Сорил руу үсрэх хэсэг */}
+              {/* Хадгалах ба Сорил нээх товчлуур */}
               <div className="bg-white p-4 rounded-2xl border border-amber-200/60 shadow-sm sticky top-0 z-10 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
-                    📋 Асуултууд & Рубрик (5:2)
+                    📋 Боловсруулсан Асуултууд & Рубрик (5:2)
                   </span>
                   <button
                     onClick={handleSave}
@@ -196,16 +192,16 @@ export default function TeacherCreatePage() {
                   </button>
                 </div>
 
-                {savedAssignmentId && (
+                {isSaved && (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
                     <p className="text-xs text-emerald-800 font-medium">
                       ✅ Даалгавар амжилттай хадгалагдлаа!
                     </p>
                     <a
-                      href={`/student/quiz/${savedAssignmentId}`}
+                      href="/task"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-sm w-full justify-center"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition shadow-sm w-full justify-center"
                     >
                       🚀 Сорил ажиллах (Сурагчийн цонхоор нээх) ↗
                     </a>
@@ -213,7 +209,7 @@ export default function TeacherCreatePage() {
                 )}
               </div>
 
-              {/* 1. Сонгох асуулт (Багш шууд засах INPUT ба TEXTAREA талбар) */}
+              {/* 1. Сонгох асуулт (Багш шууд засах INPUT ба TEXTAREA) */}
               <div className="bg-white p-5 rounded-2xl border border-amber-300 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-amber-100 pb-2">
                   <span className="font-bold text-amber-900 text-xs bg-amber-100 px-2.5 py-1 rounded-md">
@@ -222,7 +218,6 @@ export default function TeacherCreatePage() {
                   <span className="text-xs font-semibold text-amber-700">1 оноо</span>
                 </div>
 
-                {/* Асуултын текст засах */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Асуулт:</label>
                   <textarea
@@ -238,10 +233,9 @@ export default function TeacherCreatePage() {
                   />
                 </div>
 
-                {/* Сонголтуудыг засах */}
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-gray-600">
-                    Сонголтууд (Зөв хариултын тугийг сонгоно уу):
+                    Сонголтууд (Зөв хариултын урд талын тугийг сонгоно уу):
                   </label>
                   {generatedData.mcq.options.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">
@@ -291,7 +285,6 @@ export default function TeacherCreatePage() {
                       <span className="text-xs text-amber-700 font-semibold">0 - 2 оноо</span>
                     </div>
 
-                    {/* Асуулт засах */}
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-500 mb-1">Асуулт:</label>
                       <textarea
@@ -309,7 +302,6 @@ export default function TeacherCreatePage() {
                       />
                     </div>
 
-                    {/* Рубрик засах */}
                     <div>
                       <label className="block text-[11px] font-semibold text-amber-900 mb-1">
                         Үнэлгээний рубрик (Багшийн заавар):
