@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const blueprint = await prisma.blueprint.findUnique({
+    const blueprint = await (prisma as any).blueprint.findUnique({
       where: { id },
     });
 
@@ -38,7 +38,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const updatedBlueprint = await prisma.blueprint.update({
+    const updatedBlueprint = await (prisma as any).blueprint.update({
       where: { id },
       data: { ...body },
     });
@@ -60,7 +60,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    await prisma.blueprint.delete({
+    await (prisma as any).blueprint.delete({
       where: { id },
     });
 
