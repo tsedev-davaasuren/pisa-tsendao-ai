@@ -31,63 +31,42 @@ interface Submission {
 export default function TeacherDashboardPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
 
-  // 1. Сурагчдын илгээсэн даалгавруудыг унших
   const loadSubmissions = () => {
     const stored = localStorage.getItem('pisa_submissions');
     if (stored) {
       try {
         const parsed: Submission[] = JSON.parse(stored);
         setSubmissions(parsed);
-        if (parsed.length > 0 && !selectedSub) {
+        if (parsed.length > 0) {
           setSelectedSub(parsed[0]);
+        } else {
+          setSelectedSub(null);
         }
       } catch (e) {
         console.error(e);
       }
+    } else {
+      setSubmissions([]);
+      setSelectedSub(null);
     }
   };
 
   useEffect(() => {
     loadSubmissions();
+
+    // Санах ой шинэчлэгдэх бүрт автоматаар дахин унших
+    window.addEventListener('storage', loadSubmissions);
+    return () => window.removeEventListener('storage', loadSubmissions);
   }, []);
 
-  // 2. ✨ ЦэндАО AI Зөвлөмж бүгдэд оруулах
-  const handleGenerateAiFeedback = async () => {
-    if (!selectedSub) return;
-    setGeneratingAi(true);
-
-    try {
-      const updatedOpenResults = selectedSub.openResults.map((q) => {
-        let aiFeedback = '';
-        if (q.score === q.maxScore) {
-          aiFeedback = 'ЦэндАО AI Зөвлөмж: Рубрикийн шалгуурыг бүрэн хангаж, эхийн гол санаа, дүрүүдийн харилцааг маш сайн задлан шинжилж бичсэн байна. Баяр хүргэе!';
-        } else if (q.score > 0) {
-          aiFeedback = 'ЦэндАО AI Зөвлөмж: Хариулт тодорхой боловч эхээс эш татах баримт болон эргэцүүлэл дутуу байна. Рубрикийн шалгуурыг дахин нягталж хариултаа гүнзгийрүүлнэ үү.';
-        } else {
-          aiFeedback = 'ЦэндАО AI Зөвлөмж: Асуултад оновчтой хариулаагүй эсвэл хоосон орхисон байна. Зохиолын дүрүүдийн сэтгэл зүйн өөрчлөлтийг анхааралтай уншиж дахин оролдоно уу.';
-        }
-        return { ...q, feedback: aiFeedback };
-      });
-
-      const updatedSub: Submission = {
-        ...selectedSub,
-        status: 'Шалгасан',
-        openResults: updatedOpenResults,
-      };
-
-      setSelectedSub(updatedSub);
-
-      const updatedList = submissions.map((s) => (s.id === updatedSub.id ? updatedSub : s));
-      setSubmissions(updatedList);
-      localStorage.setItem('pisa_submissions', JSON.stringify(updatedList));
-
-      alert('✨ ЦэндАО AI зөвлөмжийг амжилттай оруулж, даалгаврыг шалгалаа!');
-    } catch (e) {
-      alert('Зөвлөмж оруулахад алдаа гарлаа.');
-    } finally {
-      setGeneratingAi(false);
+  // Хуучин туршилтын датаг арилгах
+  const handleClearHistory = () => {
+    if (confirm('Бүх илгээсэн сорилын түүхийг цэвэрлэх үү?')) {
+      localStorage.removeItem('pisa_submissions');
+      setSubmissions([]);
+      setSelectedSub(null);
+      alert('Түүх амжилттай цэвэрлэгдлээ.');
     }
   };
 
@@ -114,8 +93,16 @@ export default function TeacherDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100/70 text-amber-900 text-xs font-bold rounded-xl border border-amber-300">
-            <span>👨‍🏫 ЦэндАО AI туслах идэвхтэй</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClearHistory}
+              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl border border-red-200 transition"
+            >
+              🗑 Түүх цэвэрлэх
+            </button>
+            <div className="px-3 py-1.5 bg-amber-100/70 text-amber-900 text-xs font-bold rounded-xl border border-amber-300">
+              👨‍🏫 ЦэндАО AI туслах идэвхтэй
+            </div>
           </div>
         </div>
 
@@ -137,9 +124,9 @@ export default function TeacherDashboardPage() {
 
             {submissions.length === 0 ? (
               <div className="p-8 text-center text-xs text-gray-500 space-y-2">
-                <p>Одоогоор сурагч сорил илгээгээгүй байна.</p>
+                <p>Одоогоор сорил илгээсэн сурагч байхгүй байна.</p>
                 <p className="text-[11px] text-gray-400">
-                  Сурагчийн цонхоор (<code>/student-exam</code>) нэвтэрч "Даалгавар илгээх" дарахад энд шууд харагдана.
+                  Сурагчийн цонхоор (<code>/student-exam</code>) нэвтэрч сорил ажиллаад "Даалгавар илгээх" дарахад энд шууд харагдана.
                 </p>
               </div>
             ) : (
@@ -160,14 +147,8 @@ export default function TeacherDashboardPage() {
                         <span className="font-bold text-sm text-gray-900">
                           {sub.studentName} ({sub.className || '9Е анги'})
                         </span>
-                        <span
-                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            sub.status === 'Шалгасан'
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-amber-200 text-amber-900'
-                          }`}
-                        >
-                          {sub.status || 'Шалгаагүй'}
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          {sub.status || 'Шалгасан'}
                         </span>
                       </div>
 
@@ -188,7 +169,7 @@ export default function TeacherDashboardPage() {
             )}
           </div>
 
-          {/* БАРУУН ТАЛ: Сонгосон сурагчийн даалгаврын засал ба AI зөвлөмж (3 багана) */}
+          {/* БАРУУН ТАЛ: Сонгосон сурагчийн даалгавар & AI Зөвлөмж (3 багана) */}
           <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm space-y-6">
             {!selectedSub ? (
               <div className="p-12 text-center text-xs text-gray-500">
@@ -236,25 +217,53 @@ export default function TeacherDashboardPage() {
                   </p>
                 </div>
 
-                {/* AI Зөвлөмж оруулах товчлуур */}
-                <div className="p-4 bg-amber-100/50 rounded-2xl border border-amber-300 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">👨‍🏫</span>
-                    <span className="text-xs font-bold text-amber-950">
-                      Задгай 5 асуултыг шалгах ба Цэндао багшийн зөвлөгөө оруулна уу:
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={handleGenerateAiFeedback}
-                    disabled={generatingAi}
-                    className="w-full py-3 bg-amber-400 hover:bg-amber-500 disabled:bg-amber-200 text-amber-950 font-bold rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-2"
-                  >
-                    {generatingAi ? '⏳ ЦэндАО AI зөвлөмж боловсруулж байна...' : '✨ ЦэндАО AI зөвлөмжийг бүгдэд оруулах'}
-                  </button>
-                </div>
-
                 {/* Задгай асуултууд ба AI Зөвлөмжүүд */}
                 <div className="space-y-4">
                   <h3 className="font-bold text-xs text-gray-900 border-b pb-2">
-                    Задгай даалгавруудын сурагчийн хариулт &
+                    Задгай даалгавруудын сурагчийн хариулт & ЦэндАО AI зөвлөгөө:
+                  </h3>
+
+                  {selectedSub.openResults && selectedSub.openResults.map((q, idx) => (
+                    <div key={idx} className="p-4 bg-white rounded-2xl border border-amber-200/80 shadow-sm space-y-3 text-xs">
+                      <div className="flex justify-between items-center border-b border-amber-100 pb-2">
+                        <span className="font-bold text-gray-800">
+                          {idx + 2}-р даалгавар (Задгай #{idx + 1})
+                        </span>
+                        <span className="font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-md">
+                          {q.score} / {q.maxScore || (idx >= 3 ? 3 : idx >= 1 ? 2 : 1)} оноо
+                        </span>
+                      </div>
+
+                      <p className="font-medium text-gray-900">{q.questionText}</p>
+
+                      <div>
+                        <span className="font-semibold text-gray-500">Сурагчийн бичсэн хариулт:</span>
+                        <p className="p-3 bg-amber-50/30 rounded-xl border border-amber-100 mt-1 font-serif text-gray-800 leading-relaxed">
+                          "{q.studentAnswer || 'Хариулаагүй/Хоосон'}"
+                        </p>
+                      </div>
+
+                      {q.feedback && (
+                        <div>
+                          <span className="font-bold text-emerald-900 flex items-center gap-1">
+                            ✨ ЦэндАО Багшийн зөвлөмж:
+                          </span>
+                          <p className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl mt-1 text-emerald-950 leading-relaxed">
+                            {q.feedback}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+}

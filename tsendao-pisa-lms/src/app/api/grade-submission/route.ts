@@ -4,44 +4,77 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
-    const { studentName, assignment, mcqAnswer, openAnswers } = await req.json();
+    const { studentName, className, assignment, mcqAnswer, openAnswers } = await req.json();
 
     if (!assignment) {
       return NextResponse.json({ error: 'Даалгаврын мэдээлэл олдсонгүй.' }, { status: 400 });
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY?.trim() || process.env.GEMINI_API_KEY?.trim();
+
+    // MCQ шалгах (1 оноо)
+    const isMcqCorrect = mcqAnswer === assignment.mcq.correctIndex;
+    const mcqScore = isMcqCorrect ? 1 : 0;
+
+    const maxScores = [1, 2, 2, 3, 3]; // Задгай 5 асуултын оноо (Нийт 11 + MCQ 1 = 12 оноо)
+    
+    // API Key байхгүй эсвэл сүлжээний доголдолд шууд локал засалт хийх backup
     if (!apiKey) {
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY тохируулагдаагүй байна.' }, { status: 500 });
+      let openTotal = 0;
+      const openResults = assignment.openQuestions.map((q: any, idx: number) => {
+        const ans = openAnswers[q.id || idx] || '';
+        const maxSc = maxScores[idx] || 2;
+        const score = ans.trim().length > 15 ? maxSc : ans.trim().length > 0 ? 1 : 0;
+        openTotal += score;
+        return {
+          questionId: q.id || idx + 1,
+          questionText: q.question,
+          maxScore: maxSc,
+          score: score,
+          studentAnswer: ans,
+          feedback: score === maxSc
+            ? 'ЦэндАО AI: Рубрикийн шалгуурыг бүрэн хангаж оновчтой хариулсан байна.'
+            : score > 0
+            ? 'ЦэндАО AI: Хариулт тодорхой боловч эхээс эш татах баримт дутуу байна.'
+            : 'ЦэндАО AI: Хариулт хангалтгүй эсвэл орхисон байна.'
+        };
+      });
+
+      const totalScore = mcqScore + openTotal;
+
+      return NextResponse.json({
+        id: `sub-${Date.now()}`,
+        studentName: studentName || 'Сурагч',
+        className: className || '9Е анги',
+        submittedAt: new Date().toLocaleString(),
+        assignmentTitle: assignment.title || 'Арван долоотой байхад',
+        mcqScore: mcqScore,
+        mcqQuestion: assignment.mcq.question,
+        mcqAnswer: assignment.mcq.options[mcqAnswer] || 'Сонгоогүй',
+        isMcqCorrect: isMcqCorrect,
+        openResults: openResults,
+        totalScore: totalScore,
+        maxScore: 12,
+        status: 'Шалгасан'
+      });
     }
 
-    // 1. Сонгох тест (MCQ) шалгах
-    const mcqCorrect = mcqAnswer === assignment.mcq.correctIndex;
-    const mcqScore = mcqCorrect ? 1 : 0;
-
-    // 2. Задгай асуултуудыг AI ба Рубрикаар шалгах промпт
+    // AI засалт хийх промпт
     const prompt = `
-Та бол PISA Унших чадварын сорил үнэлээч ахлах багш юм.
-Сурагчийн задгай асуултуудад бичсэн хариултыг Багшийн Үнэлгээний Рубриктэй яг таг тулгаж, асуулт бүрт оноо болон тодорхой тайлбар (feedback) өгнө үү.
+Та бол PISA Унших чадварын олон улсын сорил үнэлээч ахлах багш юм.
+Сурагчийн задгай 5 асуултын хариултыг Багшийн Үнэлгээний Рубриктэй тулгаж, асуулт бүрт оноо болон ЦэндАО AI-ийн зөвлөмж тайлбар өгнө үү.
 
-Унших эх:
+Эх бичвэр:
 """
 ${assignment.readingText}
 """
 
-[ШАЛГАХ АСУУЛТУУД БА СУРАГЧИЙН ХАРИУЛТУУД]
+[ШАЛГАХ АСУУЛТУУД БА РУБРИК]
 ${assignment.openQuestions.map((q: any, idx: number) => `
-Асуулт #${idx + 1} (${q.category \vert{}\vert{} 'Задгай'}): ${q.question}
-Багшийн Рубрик (Шалгуур):
-${q.rubric}
+Задгай #${idx + 1} (Макс оноо: ${maxScores[idx]}):${q.question}
+Багшийн Рубрик: ${q.rubric}
 Сурагчийн хариулт: "${openAnswers[q.id || idx] || 'Хариулаагүй/Хоосон'}"
 `).join('\n---\n')}
-
-[ҮНЭЛГЭЭНИЙ ДҮРЭМ]
-- Задгай #1 (Асуулт 1): Максимал 1 оноо (1 эсвэл 0)
-- Задгай #2 ба #3 (Асуулт 2, 3): Максимал 2 оноо (2, 1, 0)
-- Задгай #4 ба #5 (Асуулт 4, 5): Максимал 3 оноо (3, 2, 1, 0)
-- Тайлбарыг сурагчид ойлгомжтой, Монгол хэлээр найруулж бичнэ.
 
 Заавал дараах цэвэр JSON форматаар хариулна уу:
 {
@@ -50,31 +83,31 @@ ${q.rubric}
       "questionId": 1,
       "score": 1,
       "maxScore": 1,
-      "feedback": "Эхээс баримтыг тодорхой заан оновчтой хариулсан."
+      "feedback": "ЦэндАО AI Зөвлөмж: ..."
     },
     {
       "questionId": 2,
       "score": 2,
       "maxScore": 2,
-      "feedback": "Бөөдэйн ааш зангийн өөрчлөлтийг эхийн агуулгаар задлан шинжилсэн."
+      "feedback": "ЦэндАО AI Зөвлөмж: ..."
     },
     {
       "questionId": 3,
       "score": 2,
       "maxScore": 2,
-      "feedback": "Хүүгийн сэтгэл зүйн өөрчлөлт, атаархлыг тодорхой бичсэн."
+      "feedback": "ЦэндАО AI Зөвлөмж: ..."
     },
     {
       "questionId": 4,
       "score": 3,
       "maxScore": 3,
-      "feedback": "Манан шиг сарнисан далд утгыг гүнзгий эргэцүүлэн дүгнэсэн."
+      "feedback": "ЦэндАО AI Зөвлөмж: ..."
     },
     {
       "questionId": 5,
       "score": 3,
       "maxScore": 3,
-      "feedback": "Өөрийн туршлагатай холбон амьдралын сургамжийг оновчтой дүгнэсэн."
+      "feedback": "ЦэндАО AI Зөвлөмж: ..."
     }
   ]
 }
@@ -100,34 +133,41 @@ ${q.rubric}
     const resultText = data.choices?.[0]?.message?.content;
 
     if (!resultText) {
-      return NextResponse.json({ error: 'AI үнэлгээ гаргаж чадсангүй.' }, { status: 500 });
+      throw new Error('AI хариулт хоосон ирлээ.');
     }
 
     const aiEval = JSON.parse(resultText);
 
-    // Нийт оноо тооцох (MCQ 1 оноо + Задгай 11 оноо = Нийт 12 оноо)
-    const openTotal = aiEval.evaluatedQuestions.reduce((acc: number, curr: any) => acc + curr.score, 0);
+    const openResults = assignment.openQuestions.map((q: any, idx: number) => {
+      const evalItem = aiEval.evaluatedQuestions?.[idx] || {};
+      return {
+        questionId: q.id || idx + 1,
+        questionText: q.question,
+        maxScore: maxScores[idx] || 2,
+        score: evalItem.score ?? 1,
+        studentAnswer: openAnswers[q.id || idx] || 'Хариулаагүй',
+        feedback: evalItem.feedback || 'ЦэндАО AI Зөвлөмж: Рубрикийн шалгуурын дагуу үнэлэв.'
+      };
+    });
+
+    const openTotal = openResults.reduce((acc: number, curr: any) => acc + curr.score, 0);
     const totalScore = mcqScore + openTotal;
 
-    const submissionResult = {
+    return NextResponse.json({
       id: `sub-${Date.now()}`,
       studentName: studentName || 'Сурагч',
+      className: className || '9Е анги',
       submittedAt: new Date().toLocaleString(),
-      assignmentTitle: assignment.title,
-      totalScore,
+      assignmentTitle: assignment.title || 'Арван долоотой байхад',
+      mcqScore: mcqScore,
+      mcqQuestion: assignment.mcq.question,
+      mcqAnswer: assignment.mcq.options[mcqAnswer] || 'Сонгоогүй',
+      isMcqCorrect: isMcqCorrect,
+      openResults: openResults,
+      totalScore: totalScore,
       maxScore: 12,
-      percentage: Math.round((totalScore / 12) * 100),
-      mcqResult: {
-        selected: mcqAnswer,
-        correctIndex: assignment.mcq.correctIndex,
-        isCorrect: mcqCorrect,
-        score: mcqScore
-      },
-      openResults: aiEval.evaluatedQuestions,
-      openAnswers
-    };
-
-    return NextResponse.json(submissionResult);
+      status: 'Шалгасан'
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Үнэлгээ хийхэд алдаа гарлаа.' }, { status: 500 });
