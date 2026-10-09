@@ -10,7 +10,6 @@ export default function CreateAssignmentPage() {
   const [loading, setLoading] = useState(false);
   const [pisaData, setPisaData] = useState<any>(null);
 
-  // AI-аар даалгавар боловсруулах
   const handleGenerateAI = async () => {
     if (!readingText.trim()) {
       alert('Эх бичвэрээ оруулна уу!');
@@ -36,14 +35,12 @@ export default function CreateAssignmentPage() {
     }
   };
 
-  // Багш асуулт засах
   const handleOpenQuestionChange = (index: number, field: 'question' | 'rubric', value: string) => {
     const updated = { ...pisaData };
     updated.openQuestions[index][field] = value;
     setPisaData(updated);
   };
 
-  // Баталж санд хадгалах
   const handleSaveAssignment = async () => {
     alert('Даалгавар PISA санд амжилттай хадгалагдлаа!');
     router.push('/teacher');
@@ -52,8 +49,6 @@ export default function CreateAssignmentPage() {
   return (
     <div className="min-h-screen bg-[#FFFDF5] p-6 text-gray-800">
       <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Буцах товч ба Дээд хэсэг */}
         <div className="flex justify-between items-center bg-amber-100/60 p-4 rounded-2xl border border-amber-200">
           <div>
             <h1 className="text-xl font-bold text-gray-900">✨ Шинэ PISA Даалгавар боловсруулах</h1>
@@ -67,7 +62,6 @@ export default function CreateAssignmentPage() {
           </button>
         </div>
 
-        {/* 1. Эх бичвэр оруулах хэсэг */}
         <div className="bg-white p-6 rounded-2xl border border-amber-200/80 shadow-sm space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Даалгаврын нэр / Гарчиг</label>
@@ -100,12 +94,10 @@ export default function CreateAssignmentPage() {
           </button>
         </div>
 
-        {/* 2. AI-аас гарч ирсэн даалгаврыг багш засах & баталгаажуулах хэсэг */}
         {pisaData && (
           <div className="bg-white p-6 rounded-2xl border border-amber-300 shadow-md space-y-6">
             <h2 className="text-lg font-bold text-amber-900 border-b pb-2">📋 Боловсруулсан Даалгавар & Рубрик (Засах боломжтой)</h2>
 
-            {/* Сонгох асуулт */}
             <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-200 space-y-2">
               <span className="text-xs font-bold bg-amber-200 text-amber-800 px-2 py-1 rounded">1. Сонгох асуулт</span>
               <input
@@ -123,7 +115,6 @@ export default function CreateAssignmentPage() {
               </div>
             </div>
 
-            {/* Задгай 5 асуулт & Рубрик */}
             <div className="space-y-4">
               <h3 className="font-bold text-gray-800">Задгай 5 асуулт ба Үнэлгээний рубрик:</h3>
               {pisaData.openQuestions.map((q: any, idx: number) => (
@@ -148,7 +139,6 @@ export default function CreateAssignmentPage() {
               ))}
             </div>
 
-            {/* Хадгалах товч */}
             <button
               onClick={handleSaveAssignment}
               className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow transition"
@@ -157,7 +147,6 @@ export default function CreateAssignmentPage() {
             </button>
           </div>
         )}
-
       </div>
     </div>
   );

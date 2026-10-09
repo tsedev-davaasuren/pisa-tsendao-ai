@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 15;
+export const maxDuration = 20;
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эхэд үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
+Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
 
 Гарчиг: ${title || 'PISA Сорил'}
 Эх бичвэр:
@@ -45,8 +45,8 @@ ${readingText}
 }
 `;
 
-    // v1beta эндпоинтоор gemini-2.0-flash болон gemini-1.5-flash-ийг турших
-    const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    // Шинэ Gemini 2.0 Flash загварыг нэн түрүүнд дуудна
+    const candidateModels = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest'];
     let lastError = '';
     let jsonResponse = null;
 
