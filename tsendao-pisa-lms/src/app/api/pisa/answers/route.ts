@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Build үед static ачаалахаас сэргийлж dynamic горимд оруулна
+// Vercel дээр build хийх үед static prerender хийхээс сэргийлж dynamic горимд оруулна
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
