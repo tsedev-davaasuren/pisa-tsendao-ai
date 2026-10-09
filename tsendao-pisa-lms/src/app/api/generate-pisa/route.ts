@@ -80,7 +80,6 @@ ${readingText}
 
     const data = await response.json();
 
-    // Google-ээс ямар нэгэн алдаа буцаасан бол тэрийг мэдээлнэ
     if (data.error) {
       return NextResponse.json({ error: `Gemini API Алдаа: ${data.error.message}` }, { status: 500 });
     }
