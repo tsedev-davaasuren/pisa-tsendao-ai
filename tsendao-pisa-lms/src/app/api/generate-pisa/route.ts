@@ -16,14 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY Vercel дээр тохируулагдаагүй байна.' }, { status: 500 });
     }
 
-    // Official SDK initialization
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
 
     const prompt = `
 Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
@@ -55,18 +48,42 @@ ${readingText}
 }
 `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    // Идэвхтэй байж болох загваруудыг дараалуулан турших
+    const candidateModels = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash-002',
+      'gemini-1.5-pro'
+    ];
+
+    let responseText = '';
+    let lastError = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+          },
+        });
+        const result = await model.generateContent(prompt);
+        responseText = result.response.text();
+        if (responseText) break;
+      } catch (err: any) {
+        lastError = err.message;
+      }
+    }
 
     if (!responseText) {
-      return NextResponse.json({ error: 'AI хариу буцааж чадсангүй.' }, { status: 500 });
+      return NextResponse.json({ error: `Gemini SDK Алдаа: ${lastError}` }, { status: 500 });
     }
 
     return NextResponse.json(JSON.parse(responseText));
   } catch (error: any) {
     console.error('Gemini SDK Error:', error);
     return NextResponse.json(
-      { error: `Gemini SDK Алдаа: ${error.message || 'Сүлжээний алдаа гарлаа.'}` },
+      { error: `Gemini SDK Алдаа: ${error.message || 'Алдаа гарлаа.'}` },
       { status: 500 }
     );
   }
