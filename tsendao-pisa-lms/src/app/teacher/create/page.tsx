@@ -7,16 +7,12 @@ interface MCQ {
   question: string;
   options: string[];
   correctIndex: number;
-  category?: string;
-  points?: number;
 }
 
 interface OpenQuestion {
   id: number;
   question: string;
   rubric: string;
-  category?: string;
-  points?: number;
 }
 
 interface PisaData {
@@ -77,6 +73,7 @@ export default function TeacherCreatePage() {
       openQuestions: generatedData.openQuestions,
     };
 
+    // 🎯 /student-exam хуудастай шууд холбогдох дата хадгалалт:
     localStorage.setItem('pisa_current_task', JSON.stringify(taskToSave));
 
     try {
@@ -90,7 +87,7 @@ export default function TeacherCreatePage() {
     } finally {
       setIsSaved(true);
       setSaving(false);
-      alert('Даалгавар амжилттай хадгалагдлаа!');
+      alert('Даалгавар амжилттай хадгалагдлаа! "🚀 Сорил ажиллах" товчоор сурагчийн сорилыг нээнэ үү.');
     }
   };
 
@@ -159,7 +156,6 @@ export default function TeacherCreatePage() {
         {generatedData && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
             
-            {/* ЗҮҮН ТАЛ (5:3) */}
             <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto space-y-4">
               <div className="border-b border-amber-100 pb-3">
                 <span className="text-[11px] font-bold tracking-wider text-amber-800 uppercase bg-amber-100/70 px-2.5 py-1 rounded-md">
@@ -172,7 +168,6 @@ export default function TeacherCreatePage() {
               </div>
             </div>
 
-            {/* БАРУУН ТАЛ (5:2) */}
             <div className="lg:col-span-2 space-y-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
               
               <div className="bg-white p-4 rounded-2xl border border-amber-200/60 shadow-sm flex items-center justify-between sticky top-0 z-10">
@@ -197,17 +192,17 @@ export default function TeacherCreatePage() {
                     ✅ Даалгавар амжилттай хадгалагдлаа!
                   </p>
                   <a
-                    href="/task"
+                    href="/student-exam"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition shadow-sm w-full justify-center"
                   >
-                    🚀 Сорил ажиллах (Сурагчийн цонхоор нээх) ↗
+                    🚀 Сорил ажиллах (http://localhost:3000/student-exam нээх) ↗
                   </a>
                 </div>
               )}
 
-              {/* 1. Сонгох тест */}
+              {/* Сонгох тест */}
               <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-amber-100 pb-2">
                   <span className="font-bold text-gray-800 text-sm">
@@ -235,7 +230,7 @@ export default function TeacherCreatePage() {
 
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-gray-600">
-                    Сонголтууд (Зөв хариултын радио товчийг сонгоно уу):
+                    Сонголтууд (Зөв хариултыг сонгоно уу):
                   </label>
                   {generatedData.mcq.options.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">
@@ -269,7 +264,7 @@ export default function TeacherCreatePage() {
                 </div>
               </div>
 
-              {/* 2. Задгай 5 асуулт */}
+              {/* Задгай 5 асуулт */}
               {generatedData.openQuestions.map((q, idx) => {
                 const blueprintLabels = [
                   'Мэдээлэл олох • 1 оноо',
@@ -278,7 +273,7 @@ export default function TeacherCreatePage() {
                   'Эргэцүүлэн дүгнэх • 3 оноо',
                   'Эргэцүүлэн дүгнэх • 3 оноо',
                 ];
-                const badgeText = blueprintLabels[idx] || `${q.category || 'PISA'} • ${q.points || 2} оноо`;
+                const badgeText = blueprintLabels[idx] || 'PISA • 2 оноо';
 
                 return (
                   <div
