@@ -29,66 +29,52 @@ export default function TaskPage() {
   const [savedTime, setSavedTime] = useState<string>('');
 
   useEffect(() => {
-    // Багшийн боловсруулж хадгалсан хамгийн сүүлийн PISA даалгаврыг уншина
     const storedTask = localStorage.getItem('pisa_current_task') || localStorage.getItem('latest_pisa_assignment');
-    
     if (storedTask) {
       try {
-        const parsed = JSON.parse(storedTask);
-        setTaskData(parsed);
+        setTaskData(JSON.parse(storedTask));
       } catch (e) {
-        console.error('Task load error', e);
+        console.error(e);
       }
     }
-
     setSavedTime(new Date().toLocaleTimeString());
   }, []);
 
-  // Хэрэв хадгалагдсан даалгавар байхгүй бол анхны үзүүлэн текстийг харуулна
-  const readingText = taskData?.readingText || 'Энд тухайн хичээлийн унших эх бичвэр, эсвэл туршилтын даалгаврын тайлбар байрлана.';
-  const title = taskData?.title || 'Сорилын эх бичвэр ба График';
+  const readingText = taskData?.readingText || 'Энд унших эх бичвэр байрлана.';
+  const title = taskData?.title || 'Сорилын эх бичвэр';
 
   const mcq = taskData?.mcq || {
-    question: '1-р даалгавар (Сонгох тест): Эх бичвэр, график эсвэл хүснэгтээс тодорхой мэдээллийг таних',
-    options: [
-      'А. Эх болон өгөгдөлд шууд дурдагдсан үндсэн баримт',
-      'Б. Дурдагдаагүй таамаглал',
-      'В. Эхийн агуулгатай зөрчилдөж буй өгүүлбэр',
-      'Г. Буруу тоо баримт'
-    ],
+    question: '1-р даалгавар (Сонгох тест): Эх бичвэрээс тодорхой мэдээллийг таних',
+    options: ['А. Сонголт 1', 'Б. Сонголт 2', 'В. Сонголт 3', 'Г. Сонголт 4'],
     correctIndex: 0
   };
 
   const openQuestions = taskData?.openQuestions || [
-    { id: 1, question: '2-р даалгавар (Задгай #1): Эх, өгөгдөл, хүснэгтээс шаардлагатай мэдээллийг илрүүлж бичих' },
-    { id: 2, question: '3-р даалгавар (Задгай #2): Эхийн гол санаа, дүрүүдийн харилцааг тайлбарлах' },
-    { id: 3, question: '4-р даалгавар (Задгай #3): Зохиолын далд утгыг нэгтгэн дүгнэх' },
-    { id: 4, question: '5-р даалгавар (Задгай #4): Эхийн агуулга болон хэлбэрт дүгнэлт хийх' },
-    { id: 5, question: '6-р даалгавар (Задгай #5): Өөрийн туршлага, нийгэмтэй холбон эргэцүүлэн бичих' }
+    { id: 1, question: '2-р даалгавар (Задгай #1): Шаардлагатай мэдээллийг илрүүлж бичих' },
+    { id: 2, question: '3-р даалгавар (Задгай #2): Дүрүүдийн харилцааг задлан шинжлэх' },
+    { id: 3, question: '4-р даалгавар (Задгай #3): Сэтгэл зүйн өөрчлөлтийг задлан шинжлэх' },
+    { id: 4, question: '5-р даалгавар (Задгай #4): Зохиолын далд утгыг эргэцүүлэн дүгнэх' },
+    { id: 5, question: '6-р даалгавар (Задгай #5): Өөрийн амьдралтай холбон эргэцүүлэн дүгнэх' }
   ];
 
-  // PISA Блюпринтийн шошго
   const getBlueprintLabel = (index: number) => {
     switch (index) {
       case 0:
-      case 1:
         return 'Мэдээлэл олох • 1 оноо';
+      case 1:
       case 2:
-      case 3:
-        return 'Ойлгон тайлбарлах • 2 оноо';
+        return 'Задлан шинжлэх • 2 оноо';
       default:
-        return 'Тусган эргэцүүлэх • 2 оноо';
+        return 'Эргэцүүлэн дүгнэх • 3 оноо';
     }
   };
 
   return (
     <div className="min-h-screen bg-[#FFFDF5] text-gray-800 p-4 md:p-6 font-sans">
-      
-      {/* Дээд навигацийн хэсэг */}
       <div className="max-w-7xl mx-auto flex items-center justify-between bg-white p-3 px-5 rounded-2xl border border-amber-200/60 shadow-sm mb-6">
         <Link
           href="/"
-          className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition flex items-center gap-1"
+          className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition"
         >
           ← Нүүр рүү буцах
         </Link>
@@ -103,32 +89,28 @@ export default function TaskPage() {
         </div>
       </div>
 
-      {/* ЗЭРЭГЦЭЭ LAYOUT (ЗҮҮН 5:3 | БАРУУН 5:2) */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
         
-        {/* ЗҮҮН ТАЛ: PISA ДААЛГАВРЫН ЭХ БА ӨГӨГДӨЛ (3 багана) */}
+        {/* ЗҮҮН ТАЛ (5:3) */}
         <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm lg:h-[calc(100vh-120px)] lg:sticky lg:top-6 overflow-y-auto space-y-4">
           <div className="border-b border-amber-100 pb-3">
             <span className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-amber-100/60 px-2.5 py-1 rounded-md">
               PISA ДААЛГАВРЫН ЭХ БА ӨГӨГДӨЛ
             </span>
-            <h1 className="text-xl font-extrabold text-gray-900 mt-2">
-              {title}
-            </h1>
+            <h1 className="text-xl font-extrabold text-gray-900 mt-2">{title}</h1>
           </div>
-
           <div className="prose max-w-none text-gray-800 leading-relaxed text-sm whitespace-pre-wrap font-serif">
             {readingText}
           </div>
         </div>
 
-        {/* БАРУУН ТАЛ: ДААЛГАВРУУД (2 багана) */}
+        {/* БАРУУН ТАЛ (5:2) */}
         <div className="lg:col-span-2 space-y-6 lg:h-[calc(100vh-120px)] overflow-y-auto pr-1">
           
           <div className="bg-white p-4 rounded-2xl border border-amber-200/60 shadow-sm flex items-center justify-between sticky top-0 z-10">
             <h2 className="font-bold text-gray-900 text-base">Даалгаврууд</h2>
             <span className="text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-              Нийт: 11 оноо
+              Нийт: 12 оноо
             </span>
           </div>
 
@@ -206,7 +188,6 @@ export default function TaskPage() {
             </div>
           ))}
 
-          {/* Илгээх товчлуур */}
           <div className="pt-2">
             <button
               onClick={() => alert('Даалгаврыг амжилттай илгээлээ!')}

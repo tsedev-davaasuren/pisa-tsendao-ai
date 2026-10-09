@@ -34,7 +34,6 @@ export default function TeacherCreatePage() {
   const [generatedData, setGeneratedData] = useState<PisaData | null>(null);
   const [isSaved, setIsSaved] = useState(false);
 
-  // AI-аар PISA даалгавар үүсгэх
   const handleGenerate = async () => {
     if (!readingText.trim()) {
       alert('Эх бичвэрийг заавал оруулна уу!');
@@ -66,7 +65,6 @@ export default function TeacherCreatePage() {
     }
   };
 
-  // Даалгавар хадгалж, /task хуудастай холбох
   const handleSave = async () => {
     if (!generatedData) return;
 
@@ -92,7 +90,7 @@ export default function TeacherCreatePage() {
     } finally {
       setIsSaved(true);
       setSaving(false);
-      alert('Даалгавар амжилттай хадгалагдлаа! "🚀 Сорил ажиллах" товчийг даран сурагчийн цонхоор нээгээрэй.');
+      alert('Даалгавар амжилттай хадгалагдлаа!');
     }
   };
 
@@ -100,7 +98,6 @@ export default function TeacherCreatePage() {
     <div className="min-h-screen bg-[#FFFDF5] p-4 md:p-6 text-gray-800 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Дээд хэсэг */}
         <div className="flex items-center justify-between bg-white p-4 px-6 rounded-2xl border border-amber-200/60 shadow-sm">
           <div>
             <h1 className="text-xl font-bold text-amber-900 flex items-center gap-2">
@@ -118,7 +115,6 @@ export default function TeacherCreatePage() {
           </Link>
         </div>
 
-        {/* Эх бичвэр оруулах талбар */}
         <div className="bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm space-y-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -160,13 +156,10 @@ export default function TeacherCreatePage() {
           )}
         </div>
 
-        {/* ========================================================= */}
-        {/* 🎯 /task ХУУДАСНЫ ЗЭРЭГЦЭЭ LAYOUT (ЗҮҮН 5:3 | БАРУУН 5:2) */}
-        {/* ========================================================= */}
         {generatedData && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
             
-            {/* ЗҮҮН ТАЛ: PISA ДААЛГАВРЫН ЭХ БА ӨГӨГДӨЛ (3 багана) */}
+            {/* ЗҮҮН ТАЛ: PISA ДААЛГАВРЫН ЭХ БА ӨГӨГДӨЛ (5:3) */}
             <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto space-y-4">
               <div className="border-b border-amber-100 pb-3">
                 <span className="text-[11px] font-bold tracking-wider text-amber-800 uppercase bg-amber-100/70 px-2.5 py-1 rounded-md">
@@ -179,15 +172,14 @@ export default function TeacherCreatePage() {
               </div>
             </div>
 
-            {/* БАРУУН ТАЛ: ДААЛГАВРУУД БА БАГШ ЗАСАХ ХЭСЭГ (2 багана) */}
+            {/* БАРУУН ТАЛ: ДААЛГАВРУУД БА БАГШ ЗАСАХ ХЭСЭГ (5:2) */}
             <div className="lg:col-span-2 space-y-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
               
-              {/* Толгой ба Хадгалах товч */}
               <div className="bg-white p-4 rounded-2xl border border-amber-200/60 shadow-sm flex items-center justify-between sticky top-0 z-10">
                 <h2 className="font-bold text-gray-900 text-base">Даалгаврууд</h2>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-                    Нийт: 11 оноо
+                    Нийт: 12 оноо
                   </span>
                   <button
                     onClick={handleSave}
@@ -215,7 +207,7 @@ export default function TeacherCreatePage() {
                 </div>
               )}
 
-              {/* 1. Сонгох тест (Шар Блюпринт шошготой & Засах боломжтой) */}
+              {/* 1. Сонгох тест (Мэдээлэл олох - 1 оноо) */}
               <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-amber-100 pb-2">
                   <span className="font-bold text-gray-800 text-sm">
@@ -277,14 +269,14 @@ export default function TeacherCreatePage() {
                 </div>
               </div>
 
-              {/* 2. Задгай 5 асуулт (Блюпринт шошго болон Рубрик засах) */}
+              {/* 2. Задгай 5 асуулт (Шинэ Блюпринт шошготой) */}
               {generatedData.openQuestions.map((q, idx) => {
                 const categories = [
                   'Мэдээлэл олох • 1 оноо',
-                  'Мэдээлэл олох • 2 оноо',
-                  'Ойлгон тайлбарлах • 2 оноо',
-                  'Ойлгон тайлбарлах • 2 оноо',
-                  'Тусган эргэцүүлэх • 2 оноо',
+                  'Задлан шинжлэх • 2 оноо',
+                  'Задлан шинжлэх • 2 оноо',
+                  'Эргэцүүлэн дүгнэх • 3 оноо',
+                  'Эргэцүүлэн дүгнэх • 3 оноо',
                 ];
                 const labelText = categories[idx] || `${q.category || 'PISA Сорил'} • ${q.points || 2} оноо`;
 
