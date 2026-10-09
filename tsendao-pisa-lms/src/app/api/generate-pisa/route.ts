@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-// Vercel хугацааны хязгаарлалтыг уртасгах
 export const maxDuration = 15;
 
 export async function POST(req: Request) {
@@ -46,31 +45,42 @@ ${readingText}
 }
 `;
 
-    // Шууд Gemini API руу залгах
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json' }
-        }),
+    // v1beta эндпоинтоор gemini-2.0-flash болон gemini-1.5-flash-ийг турших
+    const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    let lastError = '';
+    let jsonResponse = null;
+
+    for (const model of candidateModels) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            }),
+          }
+        );
+
+        const data = await res.json();
+        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          jsonResponse = JSON.parse(data.candidates[0].content.parts[0].text);
+          break;
+        } else if (data.error) {
+          lastError = data.error.message;
+        }
+      } catch (e: any) {
+        lastError = e.message;
       }
-    );
-
-    const data = await response.json();
-
-    if (data.error) {
-      return NextResponse.json({ error: `Gemini API: ${data.error.message}` }, { status: 500 });
     }
 
-    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!textResult) {
-      return NextResponse.json({ error: 'AI хариу буцаасангүй.' }, { status: 500 });
+    if (jsonResponse) {
+      return NextResponse.json(jsonResponse);
     }
 
-    return NextResponse.json(JSON.parse(textResult));
+    return NextResponse.json({ error: `Gemini API: ${lastError}` }, { status: 500 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Сүлжээний алдаа гарлаа.' }, { status: 500 });
   }
