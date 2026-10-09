@@ -1,0 +1,65 @@
+datasource db {
+  provider = "postgresql" // Эсвэл "sqlite" / "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Сурагчдын модель
+model Student {
+  id         Int             @id @default(autoincrement())
+  lastName   String
+  name       String
+  email      String          @unique
+  classGroup String          @default("9Е")
+  answers    StudentAnswer[]
+  createdAt  DateTime        @default(now())
+}
+
+// 2. PISA Сорилын Блюпринт модель
+model PisaTask {
+  id          Int             @id @default(autoincrement())
+  taskNum     Int             @unique
+  title       String
+  author      String
+  subject     String
+  maxScore    Int             @default(12)
+  status      String          @default("draft") // draft, under_review, approved
+  draftNotes  String?
+  rubricItems RubricItem[]
+  answers     StudentAnswer[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+// 3. 12 Онооны Блюпринт Шалгуур (Rubric)
+model RubricItem {
+  id        Int      @id @default(autoincrement())
+  taskId    Int
+  task      PisaTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  point     Int
+  title     String
+  criteria  String
+}
+
+// 4. Сурагчийн хариулт & Багшийн зөвлөмж
+model StudentAnswer {
+  id                Int      @id @default(autoincrement())
+  studentId         Int
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  taskId            Int
+  task              PisaTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  questionTitle     String
+  studentAnswerText String
+  score             Int      @default(0)
+  maxScore          Int      @default(12)
+  feedback          String?
+  gradedBy          String?
+  isGraded          Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  @@unique([studentId, taskId])
+}

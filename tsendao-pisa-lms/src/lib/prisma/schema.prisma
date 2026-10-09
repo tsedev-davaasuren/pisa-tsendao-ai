@@ -1,0 +1,80 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  METHODOLOGIST // Арга зүйч багш
+  CLASS_TEACHER // АУБ
+  TEAM_LEAD     // Д.Цэдэв багш (Багийн ахлагч)
+}
+
+enum Subject {
+  READING
+  BIOLOGY
+  CHEMISTRY
+  GEOGRAPHY
+  SOCIAL_STUDIES
+  PHYSICS
+}
+
+// 1. Хэрэглэгчийн нэгдсэн модель
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  password     String   // Нууц үг
+  lastName     String
+  firstName    String
+  role         Role     @default(STUDENT)
+  subject      Subject? // Арга зүйч багш нарын хичээл
+  classGroup   String?  @default("9Е")
+  
+  // Сурагчийн хариултууд
+  studentAnswers StudentAnswer[]
+  attempts       TestAttempt[]
+
+  createdAt    DateTime @default(now())
+}
+
+// 2. Сурагчийн өдрийн сорилын оролдлогын бүртгэл
+model TestAttempt {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  taskId      Int
+  task        PisaTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  attemptDate DateTime @default(now()) // Шалгалт өгсөн өдөр
+
+  @@index([studentId, attemptDate])
+}
+
+model PisaTask {
+  id          Int             @id @default(autoincrement())
+  taskNum     Int             @unique
+  title       String
+  subject     Subject
+  maxScore    Int             @default(12)
+  status      String          @default("draft")
+  attempts    TestAttempt[]
+  answers     StudentAnswer[]
+}
+
+model StudentAnswer {
+  id                Int      @id @default(autoincrement())
+  studentId         Int
+  student           User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  taskId            Int
+  task              PisaTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  studentAnswerText String
+  score             Int      @default(0)
+  feedback          String?
+  isGraded          Boolean  @default(false)
+  submittedAt       DateTime @default(now())
+
+  @@unique([studentId, taskId])
+}

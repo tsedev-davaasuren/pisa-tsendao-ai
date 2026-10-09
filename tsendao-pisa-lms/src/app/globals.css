@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   ХАРААНЫ ЭРҮҮЛ АХУЙН СИСТЕМЧИЛСЭН ТОХИРГОО (EYE-CARE WARM AMBER THEME)
+   ========================================================================== */
+
+:root {
+  /* Хараанд дулаан цайвар шаргал ба зөөлөн өнгөнүүдийн систем */
+  --bg-app: #fbf8f3;          /* Үндсэн арын фон: Нүд чилээхгүй дулаан шаргал туяа */
+  --bg-card: #fffdfa;         /* Блок, картын фон: Цайвар, зөөлөн шаргал */
+  --bg-card-hover: #f7f1e5;   /* Сонгох/ hover үеийн фон */
+  --border-warm: #ebdcc3;     /* Зөөлөн шаргал хүрээ зураас */
+  
+  --text-main: #1f2937;       /* Үндсэн бичвэр: Хэт хар биш, зөөлөн Slate-800 */
+  --text-sub: #4b5563;        /* Дэд бичвэр: Slate-600 */
+  --text-amber-accent: #78350f; /* Шаргал тодотгол бичвэр */
+
+  /* Сонгогдох хэсгийн өнгө */
+  --selection-bg: #fde68a;    /* Заагуураар тэмдэглэхэд гарах цайвар шар */
+  --selection-text: #78350f;
+}
+
+@layer base {
+  /* 1. ГЛОБАЛ ФОНТ БА ДЭЛГЭЦИЙН АРЫН ФОН */
+  html, body {
+    background-color: var(--bg-app) !important;
+    color: var(--text-main);
+    font-family: Arial, Helvetica, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  /* 2. ХЭТ ТОД (BOLD) БИЧВЭРИЙН ДАРАМТЫГ ЦУЦЛАЖ, ЗӨӨЛРҮҮЛЭХ */
+  h1, h2, h3, h4, h5, h6, b, strong {
+    font-weight: 500 !important; /* Bold (700)-ийн оронд хараанд ээлтэй Medium (500) */
+  }
+
+  /* 3. ОРОЛТЫН ТАЛБАР БА ХАРИУЛТЫН BOX-ҮҮД */
+  input, textarea, select {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 400 !important;
+    background-color: #fefcf9 !important;
+    border-color: var(--border-warm) !important;
+    color: var(--text-main) !important;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    border-color: #f59e0b !important; /* Амбер шар гэрэлтэлт */
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+  }
+
+  /* 4. НҮҮРЭЭР СУУЛГАЖ СӨНГӨСӨН БИЧВЭРИЙН ТЭМДЭГЛЭГЭЭ */
+  ::selection {
+    background-color: var(--selection-bg);
+    color: var(--selection-text);
+  }
+}
+
+/* ==========================================================================
+   ТУСГАЙ ХЭРЭГСЛҮҮД (UTILITY CLASSES)
+   ========================================================================== */
+
+/* Эрүүл ахуйн шаардлага хангасан карт */
+.eye-care-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-warm);
+  border-radius: 1.5rem; /* rounded-3xl */
+  box-shadow: 0 2px 8px -2px rgba(180, 130, 60, 0.06);
+}
+
+/* Гүйлгэгч зураас (Scrollbar)-ыг зөөлөн шаргал болгох */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f7f2ea;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2d3be;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d4c0a5;
+}

@@ -1,0 +1,33 @@
+{
+  "name": "tsendao-pisa-lms",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "node node_modules/prisma/build/index.js db push",
+    "db:generate": "node node_modules/prisma/build/index.js generate"
+  },
+  "dependencies": {
+    "@google/genai": "^2.27.0",
+    "@prisma/client": "^5.22.0",
+    "lucide-react": "^1.53.0",
+    "mammoth": "^1.13.0",
+    "next": "15.0.3",
+    "pdfjs-dist": "^6.4.299",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.29",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5"
+  }
+}
