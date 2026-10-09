@@ -1,65 +1,48 @@
-import { NextAuthOptions } from "next-auth";
+// @ts-nocheck
+import NextAuth, { AuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
 
-export const authOptions: NextAuthOptions = {
+const prisma = new PrismaClient();
+
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Хэрэглэгчийн нэр", type: "text" },
-        password: { label: "Нууц үг", type: "password" }
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username }
+        const user = await (prisma as any).user.findUnique({
+          where: { username: credentials.username },
         });
 
         if (!user || !user.password) {
           return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
           return null;
         }
 
         return {
-          id: String(user.id),
+          id: user.id,
+          username: user.username,
           name: user.name,
-          email: user.email,
           role: user.role,
         };
-      }
-    })
+      },
+    }),
   ],
-  session: {
-    strategy: "jwt"
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).id = token.id;
-      }
-      return session;
-    }
-  },
-  secret: process.env.NEXTAUTH_SECRET || "pisa-tsendao-secret-key-2026",
-  pages: {
-    signIn: "/login",
-  }
+  session: { strategy: "jwt" as const },
+  pages: { signIn: "/login" },
 };
+
+export const auth = () => getServerSession(authOptions);

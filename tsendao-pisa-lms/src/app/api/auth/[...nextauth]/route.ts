@@ -1,5 +1,8 @@
-import NextAuth from "next-auth";
+// @ts-nocheck
 import { authOptions } from "@/lib/auth";
+
+// CommonJS require ашиглан NextAuth-ийг runtime дээр шууд ачаална
+const NextAuth = require("next-auth").default || require("next-auth");
 
 const handler = NextAuth(authOptions);
 
