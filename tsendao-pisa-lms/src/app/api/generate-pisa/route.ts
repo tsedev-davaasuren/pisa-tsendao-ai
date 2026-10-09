@@ -66,32 +66,42 @@ ${readingText}
 }
 `;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json' }
-        }),
+    // Идэвхтэй байж болох загваруудыг дараалуулан турших
+    const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro'];
+    let lastError = null;
+    let resultData = null;
+
+    for (const model of models) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (!data.error && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          resultData = JSON.parse(data.candidates[0].content.parts[0].text);
+          break; // Амжилттай хариу ирвэл давталтыг зогсооно
+        } else if (data.error) {
+          lastError = data.error.message;
+        }
+      } catch (e: any) {
+        lastError = e.message;
       }
-    );
-
-    const data = await response.json();
-
-    if (data.error) {
-      return NextResponse.json({ error: `Gemini API Алдаа: ${data.error.message}` }, { status: 500 });
     }
 
-    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!textResult) {
-      return NextResponse.json({ error: 'AI хариу буцааж чадсангүй.' }, { status: 500 });
+    if (resultData) {
+      return NextResponse.json(resultData);
     }
 
-    const parsedData = JSON.parse(textResult);
-    return NextResponse.json(parsedData);
+    return NextResponse.json({ error: `Gemini API Алдаа: ${lastError || 'Хариу авахад алдаа гарлаа.'}` }, { status: 500 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Алдаа гарлаа.' }, { status: 500 });
   }
