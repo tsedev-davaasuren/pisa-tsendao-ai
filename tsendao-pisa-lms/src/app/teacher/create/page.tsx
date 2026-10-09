@@ -159,7 +159,7 @@ export default function TeacherCreatePage() {
         {generatedData && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
             
-            {/* ЗҮҮН ТАЛ: PISA ДААЛГАВРЫН ЭХ БА ӨГӨГДӨЛ (5:3) */}
+            {/* ЗҮҮН ТАЛ (5:3) */}
             <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto space-y-4">
               <div className="border-b border-amber-100 pb-3">
                 <span className="text-[11px] font-bold tracking-wider text-amber-800 uppercase bg-amber-100/70 px-2.5 py-1 rounded-md">
@@ -172,7 +172,7 @@ export default function TeacherCreatePage() {
               </div>
             </div>
 
-            {/* БАРУУН ТАЛ: ДААЛГАВРУУД БА БАГШ ЗАСАХ ХЭСЭГ (5:2) */}
+            {/* БАРУУН ТАЛ (5:2) */}
             <div className="lg:col-span-2 space-y-6 lg:max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
               
               <div className="bg-white p-4 rounded-2xl border border-amber-200/60 shadow-sm flex items-center justify-between sticky top-0 z-10">
@@ -207,7 +207,7 @@ export default function TeacherCreatePage() {
                 </div>
               )}
 
-              {/* 1. Сонгох тест (Мэдээлэл олох - 1 оноо) */}
+              {/* 1. Сонгох тест */}
               <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-amber-100 pb-2">
                   <span className="font-bold text-gray-800 text-sm">
@@ -269,16 +269,16 @@ export default function TeacherCreatePage() {
                 </div>
               </div>
 
-              {/* 2. Задгай 5 асуулт (Шинэ Блюпринт шошготой) */}
+              {/* 2. Задгай 5 асуулт */}
               {generatedData.openQuestions.map((q, idx) => {
-                const categories = [
+                const blueprintLabels = [
                   'Мэдээлэл олох • 1 оноо',
                   'Задлан шинжлэх • 2 оноо',
                   'Задлан шинжлэх • 2 оноо',
                   'Эргэцүүлэн дүгнэх • 3 оноо',
                   'Эргэцүүлэн дүгнэх • 3 оноо',
                 ];
-                const labelText = categories[idx] || `${q.category || 'PISA Сорил'} • ${q.points || 2} оноо`;
+                const badgeText = blueprintLabels[idx] || `${q.category || 'PISA'} • ${q.points || 2} оноо`;
 
                 return (
                   <div
@@ -290,7 +290,7 @@ export default function TeacherCreatePage() {
                         {idx + 2}-р даалгавар (Задгай #{idx + 1})
                       </span>
                       <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-md border border-amber-300">
-                        {labelText}
+                        {badgeText}
                       </span>
                     </div>
 
