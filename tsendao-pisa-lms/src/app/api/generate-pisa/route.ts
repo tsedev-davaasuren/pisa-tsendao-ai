@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const maxDuration = 20;
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
@@ -14,6 +15,15 @@ export async function POST(req: Request) {
     if (!apiKey) {
       return NextResponse.json({ error: 'GEMINI_API_KEY Vercel дээр тохируулагдаагүй байна.' }, { status: 500 });
     }
+
+    // Official SDK initialization
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    });
 
     const prompt = `
 Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
@@ -45,43 +55,19 @@ ${readingText}
 }
 `;
 
-    // Шинэ Gemini 2.0 Flash загварыг нэн түрүүнд дуудна
-    const candidateModels = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest'];
-    let lastError = '';
-    let jsonResponse = null;
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
 
-    for (const model of candidateModels) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json' }
-            }),
-          }
-        );
-
-        const data = await res.json();
-        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          jsonResponse = JSON.parse(data.candidates[0].content.parts[0].text);
-          break;
-        } else if (data.error) {
-          lastError = data.error.message;
-        }
-      } catch (e: any) {
-        lastError = e.message;
-      }
+    if (!responseText) {
+      return NextResponse.json({ error: 'AI хариу буцааж чадсангүй.' }, { status: 500 });
     }
 
-    if (jsonResponse) {
-      return NextResponse.json(jsonResponse);
-    }
-
-    return NextResponse.json({ error: `Gemini API: ${lastError}` }, { status: 500 });
+    return NextResponse.json(JSON.parse(responseText));
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Сүлжээний алдаа гарлаа.' }, { status: 500 });
+    console.error('Gemini SDK Error:', error);
+    return NextResponse.json(
+      { error: `Gemini SDK Алдаа: ${error.message || 'Сүлжээний алдаа гарлаа.'}` },
+      { status: 500 }
+    );
   }
 }

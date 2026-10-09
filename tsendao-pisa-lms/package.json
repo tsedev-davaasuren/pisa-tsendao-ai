@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.93",
     "@google/generative-ai": "^0.21.0",
     "@prisma/client": "^5.22.0",
+    "ai": "^7.0.136",
     "bcryptjs": "^2.4.3",
     "lucide-react": "^0.453.0",
     "mammoth": "^1.8.0",
