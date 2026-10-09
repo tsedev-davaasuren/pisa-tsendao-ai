@@ -11,15 +11,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Эх бичвэр оруулна уу.' }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Түлхүүр болон хоосон зайг цэвэрлэх
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       return NextResponse.json({ error: 'GEMINI_API_KEY Vercel дээр тохируулагдаагүй байна.' }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: { responseMimeType: 'application/json' },
+    });
 
     const prompt = `
-Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
+Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эхэд үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
 
 Гарчиг: ${title || 'PISA Сорил'}
 Эх бичвэр:
@@ -48,42 +53,16 @@ ${readingText}
 }
 `;
 
-    // Идэвхтэй байж болох загваруудыг дараалуулан турших
-    const candidateModels = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash-002',
-      'gemini-1.5-pro'
-    ];
-
-    let responseText = '';
-    let lastError = null;
-
-    for (const modelName of candidateModels) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-          },
-        });
-        const result = await model.generateContent(prompt);
-        responseText = result.response.text();
-        if (responseText) break;
-      } catch (err: any) {
-        lastError = err.message;
-      }
-    }
-
-    if (!responseText) {
-      return NextResponse.json({ error: `Gemini SDK Алдаа: ${lastError}` }, { status: 500 });
-    }
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
 
     return NextResponse.json(JSON.parse(responseText));
   } catch (error: any) {
-    console.error('Gemini SDK Error:', error);
+    const rawKey = process.env.GEMINI_API_KEY?.trim() || '';
+    const keyShow = rawKey ? `${rawKey.substring(0, 10)}...${rawKey.slice(-4)}` : 'Хоосон/Байхгүй';
+
     return NextResponse.json(
-      { error: `Gemini SDK Алдаа: ${error.message || 'Алдаа гарлаа.'}` },
+      { error: `[Vercel дээрх идэвхтэй Key: ${keyShow}] Алдаа: ${error.message}` },
       { status: 500 }
     );
   }
