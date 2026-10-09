@@ -8,36 +8,40 @@ export default function TeacherDashboardPage() {
   const [selectedSub, setSelectedSub] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // Серверээс ба хадгалсан датаг авах
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
+      // 1. Серверээс татах
       const res = await fetch('/api/submissions', { cache: 'no-store' });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setSubmissions(data);
-        if (data.length > 0) {
-          setSelectedSub(data[0]);
-        } else {
-          setSelectedSub(null);
-        }
+      
+      // 2. LocalStorage-аас давхар татах (Сүлжээ тасарсан үед)
+      const localData = JSON.parse(localStorage.getItem('pisa_submissions') || '[]');
+
+      const merged = Array.isArray(data) && data.length > 0 ? data : localData;
+
+      setSubmissions(merged);
+      if (merged.length > 0 && !selectedSub) {
+        setSelectedSub(merged[0]);
       }
     } catch (e) {
-      console.error(e);
-    } finally {
+      const localData = JSON.parse(localStorage.getItem('pisa_submissions') || '[]');
+      setSubmissions(localData);
+      if (localData.length > 0) setSelectedSub(localData[0]);
+    } font-sans
+    finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSubmissions();
-    const interval = setInterval(fetchSubmissions, 4000); // 4 секунд тутамд бодит цагт засагдсан датаг татна
-    return () => clearInterval(interval);
   }, []);
 
   const handleClearHistory = async () => {
     if (confirm('Бүх сурагчдын сорилын түүхийг цэвэрлэх үү?')) {
       await fetch('/api/submissions', { method: 'DELETE' });
+      localStorage.removeItem('pisa_submissions');
       setSubmissions([]);
       setSelectedSub(null);
       alert('Түүх амжилттай цэвэрлэгдлээ.');
@@ -85,7 +89,7 @@ export default function TeacherDashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           
-          {/* ЗҮҮН ТАЛ: Илгээсэн даалгаврууд (2 багана) */}
+          {/* ЗҮҮН ТАЛ (2 багана) */}
           <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="font-bold text-sm text-gray-800">
@@ -102,11 +106,11 @@ export default function TeacherDashboardPage() {
               </div>
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {submissions.map((sub) => {
-                  const isSelected = selectedSub?.id === sub.id;
+                {submissions.map((sub, idx) => {
+                  const isSelected = selectedSub?.id === sub.id || selectedSub === sub;
                   return (
                     <div
-                      key={sub.id}
+                      key={sub.id || idx}
                       onClick={() => setSelectedSub(sub)}
                       className={`p-4 rounded-2xl border cursor-pointer transition space-y-2 ${
                         isSelected
@@ -140,7 +144,7 @@ export default function TeacherDashboardPage() {
             )}
           </div>
 
-          {/* БАРУУН ТАЛ: Сонгосон сурагчийн дэлгэрэнгүй & AI Зөвлөмж (3 багана) */}
+          {/* БАРУУН ТАЛ (3 багана) */}
           <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-amber-200/60 shadow-sm space-y-6">
             {!selectedSub ? (
               <div className="p-12 text-center text-xs text-gray-500">
