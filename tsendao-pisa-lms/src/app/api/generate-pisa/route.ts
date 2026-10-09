@@ -45,7 +45,6 @@ ${readingText}
 }
 `;
 
-    // OpenRouter дээр олон загварын fallback тохируулж байна
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -55,12 +54,10 @@ ${readingText}
         'X-Title': 'PISA LMS',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
         models: [
           'google/gemini-2.0-flash-001',
           'google/gemini-flash-1.5',
-          'openai/gpt-4o-mini',
-          'google/gemini-2.0-flash-exp:free'
+          'openai/gpt-4o-mini'
         ],
         messages: [
           { role: 'user', content: prompt }
