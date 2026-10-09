@@ -12,7 +12,6 @@ import {
   Sparkles,
   Layers,
   ShieldCheck,
-  Check,
   Loader2
 } from 'lucide-react';
 
@@ -26,7 +25,6 @@ interface TaskBlueprint {
   maxScore: number;
   status: 'draft' | 'under_review' | 'approved';
   draftNotes?: string;
-  rubricItems?: { id?: number; point: number; title: string; criteria: string }[];
 }
 
 interface StudentAnswer {
@@ -62,13 +60,13 @@ export default function PisaBuilderPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Формын state-үүд
+  // Формын state
   const [scoreInput, setScoreInput] = useState<number>(10);
   const [feedbackInput, setFeedbackInput] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
 
-  // 1. БОДИТ СЕРВЕРЭЭС ДАТА ТАТАХ (API Route FETCH)
+  // 1. СЕРВЕРЭЭС ДАТА ТАТАХ
   const loadDataFromBackend = async () => {
     try {
       setLoading(true);
@@ -89,14 +87,13 @@ export default function PisaBuilderPage() {
     loadDataFromBackend();
   }, []);
 
-  // Одоо сонгогдсон сурагчийн хариулт
+  // Сонгогдсон сурагчийн хариулт
   const currentAnswer = studentAnswers.find(
     (a) =>
       (a.studentId === selectedStudentId || a.student?.id === selectedStudentId) &&
       (a.taskId === selectedTaskNum || a.taskNum === selectedTaskNum)
   );
 
-  // Сонгогдсон хариулт өөрчлөгдөх бүрт форм дахь утгыг шинэчлэх
   useEffect(() => {
     if (currentAnswer) {
       setScoreInput(currentAnswer.score || 10);
@@ -107,7 +104,7 @@ export default function PisaBuilderPage() {
     }
   }, [selectedStudentId, selectedTaskNum, currentAnswer]);
 
-  // 2. AI-ААР АВТОМАТААР ОНОО БА ЗӨВЛӨМЖ БОЛОВСРУУЛАХ (AI API FETCH)
+  // 2. AI AUTO-GRADE
   const handleAiAutoGrade = async () => {
     const answerText = currentAnswer?.studentAnswerText || 'Сурагчийн PISA сорилын хариулт...';
 
@@ -139,7 +136,7 @@ export default function PisaBuilderPage() {
     }
   };
 
-  // 3. ДҮН БОЛОН ЗӨВЛӨМЖИЙГ ДАТА БААЗАРУУ ХАДГАЛАХ (POST FETCH)
+  // 3. ДҮН ХАДГАЛАХ
   const handleSaveGrade = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -172,37 +169,24 @@ export default function PisaBuilderPage() {
     }
   };
 
-  // 4. БЛЮПРИНТ ТӨЛӨВ ШИНЭЧЛЭХ (PATCH FETCH)
-  const handleApproveBlueprint = async (id: number, currentStatus: string) => {
-    const newStatus = currentStatus === 'approved' ? 'under_review' : 'approved';
-
-    try {
-      const res = await fetch(`/api/pisa/blueprints/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      const json = await res.json();
-      if (json.success) {
-        setBlueprints((prev) =>
-          prev.map((bp) => (bp.id === id ? { ...bp, status: newStatus as any } : bp))
-        );
-      }
-    } catch (err) {
-      alert('Блюпринт төлөв өөрчлөхөд алдаа гарлаа.');
-    }
-  };
-
-  // Статистик
   const totalGraded = studentAnswers.filter((a) => a.isGraded).length;
   const totalAnswers = studentAnswers.length || 100;
   const progressPct = Math.round((totalGraded / totalAnswers) * 100);
 
+  const getStudentDisplayName = (ans: StudentAnswer | undefined, stId: number) => {
+    if (ans?.student) {
+      return `${ans.student.lastName} ${ans.student.name}`;
+    }
+    if (ans?.studentName) {
+      return `${ans.studentLastName || ''} ${ans.studentName}`;
+    }
+    return `Сурагч #${stId}`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-3 md:p-6 font-sans text-slate-800">
       
-      {/* 1. HEADER / DASHBOARD */}
+      {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-5 bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-white shadow-md font-black text-xl">
@@ -212,18 +196,18 @@ export default function PisaBuilderPage() {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-black text-slate-900">PISA Сорил & Блюпринт Модуль</h1>
               <span className="bg-amber-100 text-amber-900 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">
-                AI Auto-Grading Холболттой
+                AI Auto-Grading
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Бодит дата баазтай холбогдсон 20 сурагчийн хариултад AI болон Багшийн зөвлөмж бичих орчин
+              20 сурагчийн хариултад AI болон Багшийн зөвлөмж бичих орчин
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl">
           <div className="text-right">
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Баазад хадгалагдсан ахиц</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Шалгасан ахиц</p>
             <p className="text-base font-black text-slate-900">
               {totalGraded} / {totalAnswers} <span className="text-xs font-semibold text-emerald-600">({progressPct}%)</span>
             </p>
@@ -234,7 +218,7 @@ export default function PisaBuilderPage() {
         </div>
       </div>
 
-      {/* 2. TABS */}
+      {/* TABS */}
       <div className="max-w-7xl mx-auto mb-4 flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('grading')}
@@ -245,7 +229,7 @@ export default function PisaBuilderPage() {
           }`}
         >
           <UserCheck className="w-4 h-4" />
-          Хариулт Шалгах & Зөвлөмж Бичих ({totalGraded}/{totalAnswers})
+          Хариулт Шалгах & Зөвлөмж Бичих
         </button>
 
         <button
@@ -261,7 +245,7 @@ export default function PisaBuilderPage() {
         </button>
       </div>
 
-      {/* 3. MAIN GRADING TAB */}
+      {/* GRADING TAB */}
       {activeTab === 'grading' && (
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4">
           
@@ -287,7 +271,6 @@ export default function PisaBuilderPage() {
               </div>
             </div>
 
-            {/* Task selector */}
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl mb-3">
               {[1, 2, 3, 4, 5].map((num) => (
                 <button
@@ -304,7 +287,6 @@ export default function PisaBuilderPage() {
               ))}
             </div>
 
-            {/* Student List */}
             <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100">
               {Array.from({ length: 20 }).map((_, idx) => {
                 const stId = idx + 1;
@@ -314,9 +296,8 @@ export default function PisaBuilderPage() {
                     (a.taskId === selectedTaskNum || a.taskNum === selectedTaskNum)
                 );
                 const isSelected = stId === selectedStudentId;
-
-                const stName = ans?.student ? `${ans.student.lastName}${ans.student.name}` : ans?.studentName ? `${ans.studentLastName}${ans.studentName}` : `Сурагч #${stId}`;
-                const stEmail = ans?.student?.email || ans?.moesEmail || `student${stId}@moes.edu.mn`;
+                const nameText = getStudentDisplayName(ans, stId);
+                const emailText = ans?.student?.email || ans?.moesEmail || `student${stId}@moes.edu.mn`;
 
                 return (
                   <div
@@ -333,8 +314,8 @@ export default function PisaBuilderPage() {
                         {stId}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-xs font-black text-slate-900 truncate">{stName}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{stEmail}</p>
+                        <p className="text-xs font-black text-slate-900 truncate">{nameText}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{emailText}</p>
                       </div>
                     </div>
 
@@ -356,7 +337,7 @@ export default function PisaBuilderPage() {
             </div>
           </div>
 
-          {/* RIGHT: ANSWER & FEEDBACK EDITOR */}
+          {/* RIGHT: EDITOR */}
           <div className="lg:col-span-8 bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex flex-col h-[700px] overflow-y-auto">
             <form onSubmit={handleSaveGrade} className="space-y-4">
               
@@ -366,4 +347,130 @@ export default function PisaBuilderPage() {
                     PISA Сорил #{selectedTaskNum}
                   </span>
                   <h2 className="text-sm font-black text-slate-900 mt-1">
-                    {currentAnswer?.student ? `${currentAnswer.student.lastName}${currentAnswer.student.name}` : `Сураг
+                    {getStudentDisplayName(currentAnswer, selectedStudentId)}
+                  </h2>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shrink-0">
+                  <Award className="w-5 h-5 text-amber-500" />
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Онооны стандарт</p>
+                    <p className="text-xs font-black text-slate-900">Максимум 12 Оноо</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                  Сурагчийн хариулт:
+                </span>
+                <p className="text-xs text-slate-800 leading-relaxed font-mono bg-white p-3 rounded-xl border border-slate-200">
+                  "{currentAnswer?.studentAnswerText || 'Энэхүү PISA сорилын эх сурвалжаас харахад далд утга нь логик дараалалтайгаар бичигдсэн байна...'}"
+                </p>
+              </div>
+
+              <div className="bg-slate-900 text-white p-5 rounded-3xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <h3 className="text-xs font-black uppercase tracking-wider">
+                      Зөвлөмж & Дүн
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      Оноо (0 - 12):
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={12}
+                      value={scoreInput}
+                      onChange={(e) => setScoreInput(Number(e.target.value))}
+                      className="w-full bg-slate-800 border border-slate-700 text-amber-400 font-black text-lg p-2.5 rounded-xl text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] text-slate-400 mb-1">Түвшин:</p>
+                    <div className="flex gap-2">
+                      <span className={`text-[10px] px-2.5 py-1 rounded-lg font-extrabold ${scoreInput >= 10 ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                        10-12: Өндөр
+                      </span>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-lg font-extrabold ${scoreInput >= 6 && scoreInput < 10 ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                        6-9: Дунд
+                      </span>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-lg font-extrabold ${scoreInput < 6 ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                        0-5: Анхаарах
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-300">
+                      Багшийн зөвлөмж бичих:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAiAutoGrade}
+                      disabled={isAiLoading}
+                      className="text-[11px] bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-600 hover:to-amber-500 text-slate-950 font-black px-3 py-1 rounded-lg shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                      {isAiLoading ? 'AI Шинжилж байна...' : '✨ AI-аар оноо ба зөвлөмж боловсруулах'}
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="Сурагчид өгөх арга зүйн зөвлөмж бичнэ үү..."
+                    value={feedbackInput}
+                    onChange={(e) => setFeedbackInput(e.target.value)}
+                    className="w-full bg-slate-800 text-xs border border-slate-700 text-slate-100 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Баазад Хадгалах
+                  </button>
+                </div>
+
+              </div>
+
+            </form>
+          </div>
+
+        </div>
+      )}
+
+      {/* BLUEPRINTS TAB */}
+      {activeTab === 'blueprints' && (
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3">
+            <ShieldCheck className="w-6 h-6 text-amber-700 shrink-0" />
+            <div>
+              <h3 className="text-xs font-black text-amber-950">Цэндао багшийн Блюпринт Баталгаажуулалт</h3>
+              <p className="text-[11px] text-amber-900">
+                12 онооны шалгуур стандартууд.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
