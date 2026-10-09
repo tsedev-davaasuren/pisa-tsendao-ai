@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 30;
 
@@ -11,12 +10,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Эх бичвэр оруулна уу.' }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    const apiKey = process.env.OPENROUTER_API_KEY?.trim() || process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
-      return NextResponse.json({ error: 'GEMINI_API_KEY тохируулагдаагүй байна.' }, { status: 500 });
+      return NextResponse.json({ error: 'OPENROUTER_API_KEY Vercel дээр тохируулагдаагүй байна.' }, { status: 500 });
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
 
     const prompt = `
 Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
@@ -48,27 +45,35 @@ ${readingText}
 }
 `;
 
-    // Timeout-аас сэргийлж зөвхөн хамгийн хурдан, идэвхтэй 2 загварыг тодорхой туршина
-    const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-    let responseText = '';
-    let lastError = '';
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://tsendao-pisa-lms.vercel.app',
+        'X-Title': 'PISA LMS',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      })
+    });
 
-    for (const modelName of candidateModels) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: { responseMimeType: 'application/json' },
-        });
-        const result = await model.generateContent(prompt);
-        responseText = result.response.text();
-        if (responseText) break;
-      } catch (err: any) {
-        lastError = err.message;
-      }
+    const data = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: `OpenRouter API Алдаа: ${data.error?.message || JSON.stringify(data)}` },
+        { status: 500 }
+      );
     }
 
+    const responseText = data.choices?.[0]?.message?.content;
     if (!responseText) {
-      return NextResponse.json({ error: `Gemini SDK Алдаа: ${lastError}` }, { status: 500 });
+      return NextResponse.json({ error: 'AI хариулт хоосон ирлээ.' }, { status: 500 });
     }
 
     return NextResponse.json(JSON.parse(responseText));
