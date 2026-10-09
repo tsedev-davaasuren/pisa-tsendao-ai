@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY тохируулагдаагүй байна.' }, { status: 500 });
     }
 
-    // 1. Google API-аас энэ API Key дээр зөвшөөрөгдсөн загваруудын жагсаалтыг авна
+    // 1. Google API-аас идэвхтэй загваруудыг авах
     const listRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
     );
@@ -28,23 +28,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Идэвхтэй бөгөөд асуулт үүсгэж чадах загварыг хайж олох
-    const availableModels = listData.models || [];
-    const validModel = availableModels.find((m: any) =>
-      m.supportedGenerationMethods?.includes('generateContent') &&
-      (m.name.includes('flash') || m.name.includes('pro'))
-    );
+    // generateContent дэмждэг бүх загваруудыг шүүж авах
+    const availableModels = (listData.models || [])
+      .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+      .map((m: any) => m.name);
 
-    if (!validModel) {
+    if (availableModels.length === 0) {
       return NextResponse.json(
-        { error: `Таны API түлхүүрт идэвхтэй Gemini загвар олдсонгүй. Боломжит загварууд: ${JSON.stringify(availableModels.map((m: any) => m.name))}` },
+        { error: 'Таны API түлхүүрт ажиллах боломжтой Gemini загвар олдсонгүй.' },
         { status: 500 }
       );
     }
 
-    const modelEndpoint = validModel.name; // Жишээ нь: "models/gemini-1.5-flash"
-
-    // 2. Олдсон идэвхтэй загвар руу PISA даалгавар үүсгэх хүсэлт явуулна
     const prompt = `
 Та бол PISA унших чадварын сорил боловсруулагч багш юм. Дараах эх бичвэрт үндэслэн PISA асуулт ба үнэлгээний рубрик боловсруул.
 
@@ -75,28 +70,44 @@ ${readingText}
 }
 `;
 
-    const genRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${modelEndpoint}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json' },
-        }),
+    let responseText = '';
+    let lastError = '';
+
+    // 2. Олдсон загваруудыг ажиллах хүртэл нь дараалуулан турших
+    for (const modelName of availableModels) {
+      try {
+        const genRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json' },
+            }),
+          }
+        );
+
+        const genData = await genRes.json();
+
+        if (genRes.ok && genData.candidates?.[0]?.content?.parts?.[0]?.text) {
+          responseText = genData.candidates[0].content.parts[0].text;
+          break; // Амжилттай үүссэн бол давталтыг зогсооно
+        } else {
+          lastError = genData.error?.message || `Status: ${genRes.status}`;
+        }
+      } catch (err: any) {
+        lastError = err.message;
       }
-    );
+    }
 
-    const genData = await genRes.json();
-
-    if (!genRes.ok) {
+    if (!responseText) {
       return NextResponse.json(
-        { error: `Gemini API Алдаа: ${genData.error?.message || 'Асуулт үүсгэж чадсангүй.'}` },
+        { error: `Gemini API Алдаа: ${lastError}` },
         { status: 500 }
       );
     }
 
-    const responseText = genData.candidates?.[0]?.content?.parts?.[0]?.text;
     return NextResponse.json(JSON.parse(responseText));
 
   } catch (error: any) {
