@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'GEMINI_API_KEY тохируулагдаагүй байна.' }, { status: 500 });
+      return NextResponse.json({ error: 'GEMINI_API_KEY Vercel дээр тохируулагдаагүй байна.' }, { status: 500 });
     }
 
     const prompt = `
@@ -79,16 +79,21 @@ ${readingText}
     );
 
     const data = await response.json();
+
+    // Google-ээс ямар нэгэн алдаа буцаасан бол тэрийг мэдээлнэ
+    if (data.error) {
+      return NextResponse.json({ error: `Gemini API Алдаа: ${data.error.message}` }, { status: 500 });
+    }
+
     const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!textResult) {
-      throw new Error('AI хариу буцааж чадсангүй.');
+      return NextResponse.json({ error: 'AI хариу буцааж чадсангүй.' }, { status: 500 });
     }
 
     const parsedData = JSON.parse(textResult);
     return NextResponse.json(parsedData);
   } catch (error: any) {
-    console.error('Gemini error:', error);
     return NextResponse.json({ error: error.message || 'Алдаа гарлаа.' }, { status: 500 });
   }
 }
