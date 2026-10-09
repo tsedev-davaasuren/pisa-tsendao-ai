@@ -1,47 +1,71 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import NextAuth, { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-export async function POST(req: Request) {
-  try {
-    const { name, email, password, role } = await req.json();
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Мэдээллээ бүрэн оруулна уу." },
-        { status: 400 }
-      );
-    }
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Энэ имэйл хаяг хэдийн бүртгэгдсэн байна." },
-        { status: 400 }
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: role || "STUDENT",
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        username: { label: "Хэрэглэгчийн нэр", type: "text" },
+        password: { label: "Нууц үг", type: "password" }
       },
-    });
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) {
+          return null;
+        }
 
-    return NextResponse.json({ success: true, userId: user.id });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Бүртгэхэд алдаа гарлаа." },
-      { status: 500 }
-    );
+        // Хэрэглэгчийг бааз дээрээс хайх
+        const user = await prisma.user.findUnique({
+          where: { username: credentials.username }
+        });
+
+        if (!user || !user.password) {
+          return null;
+        }
+
+        // Нууц үгийг bcryptjs ашиглан шалгах
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
+      }
+    })
+  ],
+  session: {
+    strategy: "jwt"
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role;
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).role = token.role;
+        (session.user as any).id = token.id;
+      }
+      return session;
+    }
+  },
+  secret: process.env.NEXTAUTH_SECRET || "pisa-tsendao-secret-key-2026",
+  pages: {
+    signIn: "/login",
   }
-}
+};
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
