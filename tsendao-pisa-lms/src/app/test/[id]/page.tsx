@@ -8,7 +8,7 @@ interface PageProps {
 export default async function TestPage({ params }: PageProps) {
   const { id } = await params;
 
-  // (prisma as any) ашиглан Type шалгалтыг тойруулна
+  // (prisma as any) ашиглан task моделийн Type шалгалтыг тойруулна
   const task = await (prisma as any).task.findUnique({
     where: { id: Number(id) || id },
     include: {
@@ -23,7 +23,6 @@ export default async function TestPage({ params }: PageProps) {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">{task.title || "Сорил"}</h1>
-      {/* Таны үндсэн UI бүрэлдэхүүнүүд */}
     </div>
   );
 }
