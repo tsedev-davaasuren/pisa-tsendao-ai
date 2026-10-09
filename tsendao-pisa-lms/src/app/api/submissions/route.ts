@@ -1,59 +1,56 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { auth } from "@/lib/auth";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-export async function POST(req: Request) {
+export async function GET() {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Нэвтрэх шаардлагатай." },
-        { status: 401 }
-      );
-    }
-
-    const { taskId, selectedOptionId } = await req.json();
-
-    if (!taskId || !selectedOptionId) {
-      return NextResponse.json(
-        { error: "Мэдээлэл дутуу байна." },
-        { status: 400 }
-      );
-    }
-
-    // Сонгосон сонголт зөв эсэхийг шалгах
-    const option = await prisma.option.findUnique({
-      where: { id: selectedOptionId },
+    const submissions = await prisma.studentAnswer.findMany({
+      include: {
+        student: true,
+        task: true,
+      },
     });
+    return NextResponse.json({ success: true, data: submissions });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Илгээсэн хариултуудыг татахад алдаа гарлаа' },
+      { status: 500 }
+    );
+  }
+}
 
-    if (!option) {
-      return NextResponse.json(
-        { error: "Сонголт олдсонгүй." },
-        { status: 404 }
-      );
-    }
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { studentId, taskId, score, feedback, gradedBy } = body;
 
-    // Хариултыг DB-д хадгалах
-    const submission = await prisma.submission.create({
-      data: {
-        userId: (session.user as any).id,
-        taskId,
-        selectedOptionId,
-        isCorrect: option.isCorrect,
+    const updated = await prisma.studentAnswer.upsert({
+      where: {
+        studentId_taskId: {
+          studentId: Number(studentId),
+          taskId: Number(taskId),
+        },
+      },
+      update: {
+        score: Number(score),
+        feedback: feedback || '',
+        gradedBy: gradedBy || 'Багш',
+        isGraded: true,
+      },
+      create: {
+        studentId: Number(studentId),
+        taskId: Number(taskId),
+        score: Number(score),
+        feedback: feedback || '',
+        gradedBy: gradedBy || 'Багш',
+        isGraded: true,
+        studentAnswerText: body.studentAnswerText || '',
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      isCorrect: option.isCorrect,
-      submissionId: submission.id,
-    });
+    return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     return NextResponse.json(
-      { error: "Хариулт хадгалахад алдаа гарлаа." },
+      { success: false, error: 'Дүн хадгалахад алдаа гарлаа' },
       { status: 500 }
     );
   }
